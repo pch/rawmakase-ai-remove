@@ -180,12 +180,30 @@ pub fn config(server: &Server, env: &[(&str, &str)]) -> Config {
         env: Arc::new(move |name| env.get(name).cloned()),
         poll_every: Duration::from_millis(10),
         deadline: Duration::from_secs(8),
+        lama: Config::default().lama,
     }
 }
 
 /// The extension served as the app serves an `api = 3` manifest, after the
 /// handshake with `settings`.
 pub fn start(config: Config, settings: &[(&str, &str)]) -> MockHost {
+    // A data folder of its own: the panel keeps its values there.
+    static HOSTS: std::sync::atomic::AtomicUsize = std::sync::atomic::AtomicUsize::new(0);
+    let n = HOSTS.fetch_add(1, std::sync::atomic::Ordering::SeqCst);
+    let data_dir = std::env::temp_dir().join(format!(
+        "rawmakase-ai-retouch-test-{}-{n}",
+        std::process::id()
+    ));
+    let _ = std::fs::remove_dir_all(&data_dir);
+    start_in(config, settings, data_dir)
+}
+
+/// [`start`] with the data folder given, to set up or look at what it holds.
+pub fn start_in(
+    config: Config,
+    settings: &[(&str, &str)],
+    data_dir: std::path::PathBuf,
+) -> MockHost {
     let host = MockHost::start_with_options(
         rawmakase_ai_retouch::extension_with(config),
         ServeOptions { api: 3 },
@@ -195,26 +213,26 @@ pub fn start(config: Config, settings: &[(&str, &str)]) -> MockHost {
         .iter()
         .map(|(k, v)| (k.to_string(), Value::String(v.to_string())))
         .collect();
-    // A data folder of its own: the panel keeps its values there.
-    static HOSTS: std::sync::atomic::AtomicUsize = std::sync::atomic::AtomicUsize::new(0);
-    let n = HOSTS.fetch_add(1, std::sync::atomic::Ordering::SeqCst);
-    let data_dir = std::env::temp_dir().join(format!(
-        "rawmakase-ai-retouch-test-{}-{n}",
-        std::process::id()
-    ));
-    let _ = std::fs::remove_dir_all(&data_dir);
     let hello = host
         .hello_with(Hello {
             settings,
             extension: "dev.pch.ai-remove".into(),
-            contributions: vec!["retouch-generator/retouch".into(), "panel/retouch".into()],
+            contributions: vec![
+                "retouch-generator/retouch".into(),
+                "retouch-generator/local".into(),
+                "panel/retouch".into(),
+            ],
             data_dir,
             ..MockHost::hello_params()
         })
         .unwrap();
     assert_eq!(
         hello.implements,
-        ["panel/retouch", "retouch-generator/retouch"]
+        [
+            "panel/retouch",
+            "retouch-generator/local",
+            "retouch-generator/retouch"
+        ]
     );
     host
 }
@@ -279,6 +297,59 @@ pub fn request() -> RetouchGenerate {
         result,
         image_key: "0123456789abcdef".into(),
     }
+}
+
+/// A `w` x `h` request, its rows padded like [`request`]'s, with the region's
+/// pixels from `pixel(x, y)` and the painted area from `paint(x, y)`, each in
+/// the request's padded layout.
+pub fn sized(
+    w: u32,
+    h: u32,
+    pixel: impl Fn(usize, usize) -> [u8; 3],
+    paint: impl Fn(usize, usize) -> u8,
+) -> (RetouchGenerate, Vec<u8>, Vec<u8>) {
+    let base = request();
+    let (image_stride, coverage_stride, result_stride) = (w * 3 + 5, w + 3, w * 3 + 7);
+    let request = RetouchGenerate {
+        image: Buffer {
+            width: w,
+            height: h,
+            stride: image_stride,
+            bytes: u64::from(image_stride * h),
+            ..base.image
+        },
+        coverage: Buffer {
+            width: w,
+            height: h,
+            stride: coverage_stride,
+            bytes: u64::from(coverage_stride * h),
+            ..base.coverage
+        },
+        result: Buffer {
+            width: w,
+            height: h,
+            stride: result_stride,
+            bytes: u64::from(result_stride * h),
+            ..base.result
+        },
+        ..base
+    };
+    let mut image = vec![0xEE; (image_stride * h) as usize];
+    let mut coverage = vec![0; (coverage_stride * h) as usize];
+    for y in 0..h as usize {
+        for x in 0..w as usize {
+            let i = y * image_stride as usize + x * 3;
+            image[i..i + 3].copy_from_slice(&pixel(x, y));
+            coverage[y * coverage_stride as usize + x] = paint(x, y);
+        }
+    }
+    (request, image, coverage)
+}
+
+/// The result's pixel at (x, y) of a `w`-wide request made by [`sized`].
+pub fn sized_pixel(result: &[u8], w: u32, x: usize, y: usize) -> [u8; 3] {
+    let stride = (w * 3 + 7) as usize;
+    result[y * stride + x * 3..][..3].try_into().unwrap()
 }
 
 /// The region's pixels, in the request's padded layout.

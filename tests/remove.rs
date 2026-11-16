@@ -658,9 +658,15 @@ fn the_manifest_declares_what_the_program_implements() {
     let program = manifest.program.as_ref().unwrap();
     assert_eq!(program.path, concat!("bin/", env!("CARGO_PKG_NAME")));
     use rawmakase_extension::protocol::manifest::PanelPlace;
-    let [generator] = &manifest.retouch_generators[..] else {
-        panic!("one retouch generator");
+    let [local, generator] = &manifest.retouch_generators[..] else {
+        panic!("two retouch generators");
     };
+    // The one on this computer uploads nothing, so the app never asks the
+    // user's consent for it, and it has no drawer: nothing to choose.
+    assert_eq!(local.id, rawmakase_ai_retouch::LOCAL_GENERATOR);
+    assert_eq!(local.name, "AI Remove on this computer");
+    assert!(!local.uploads);
+    assert_eq!(local.panel, None);
     assert_eq!(generator.id, rawmakase_ai_retouch::GENERATOR);
     assert_eq!(generator.name, "AI Retouch");
     assert!(generator.uploads);

@@ -7,7 +7,7 @@ api = 3
 authors = ["Piotr Chmolowski"]
 license = "MIT"
 repository = "https://github.com/pch/rawmakase-ai-retouch"
-description = "Experimental: AI Remove and AI Replace in an AI Retouch tool, with a hosted AI model (fal.ai or Replicate) and your own API key. Paint over an area, optionally say what to do with it; each request sends the region to the service and is one paid call."
+description = "Experimental: AI Remove and AI Replace in an AI Retouch tool, with a hosted AI model (fal.ai or Replicate) and your own API key. Paint over an area, optionally say what to do with it; each request sends the region to the service and is one paid call. A second tool, AI Remove on this computer, removes with a model that runs locally: nothing is uploaded, and no key is needed."
 
 [access]
 network = true
@@ -54,6 +54,14 @@ help = "What AI Remove uses without text: owner/name or owner/name:version of a 
 control = "text"
 default = "bria/eraser"
 visible-when = { setting = "provider", equals = "Replicate" }
+
+# AI Remove with a model that runs on this computer: nothing leaves it, so
+# there is no `uploads` and no consent question, and nothing to choose, so no
+# panel. The model is downloaded once, on first use.
+[[retouch-generator]]
+id = "local"
+name = "AI Remove on this computer"
+icon = "icons/local.svg"
 
 [[retouch-generator]]
 id = "retouch"

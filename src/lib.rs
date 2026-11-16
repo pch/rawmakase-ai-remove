@@ -17,6 +17,7 @@
 //! Every request is one paid call to the provider, so nothing here retries.
 mod fal;
 mod http;
+mod local;
 mod panel;
 mod pixels;
 mod provider;
@@ -34,10 +35,14 @@ use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::mpsc::{self, RecvTimeoutError};
 use std::time::{Duration, Instant};
 
+pub use local::ModelFile;
 pub use sanitize::sanitize;
 
 /// The manifest's `[[retouch-generator]]` id.
 pub const GENERATOR: &str = "retouch";
+/// The manifest's `[[retouch-generator]]` id for AI Remove on this computer:
+/// no service, no key, nothing uploaded.
+pub const LOCAL_GENERATOR: &str = "local";
 pub use panel::{MODE, PANEL, PROMPT, REMOVE, REPLACE};
 
 /// The manifest's `[[setting]]` ids.
@@ -105,6 +110,8 @@ pub struct Config {
     /// image. Below the app's 200 s deadline for `retouch.generate`, so the
     /// program answers before the app gives up on it.
     pub deadline: Duration,
+    /// The model AI Remove on this computer downloads, once.
+    pub lama: ModelFile,
 }
 
 impl Default for Config {
@@ -115,6 +122,7 @@ impl Default for Config {
             env: Arc::new(|name| std::env::var(name).ok()),
             poll_every: Duration::from_secs(1),
             deadline: Duration::from_secs(180),
+            lama: ModelFile::lama(),
         }
     }
 }
@@ -131,8 +139,17 @@ pub fn extension_with(config: Config) -> Extension {
         .retouch_generator(
             GENERATOR,
             Retouch {
+                config: config.clone(),
+                asked: asked.clone(),
+                local: false,
+            },
+        )
+        .retouch_generator(
+            LOCAL_GENERATOR,
+            Retouch {
                 config,
                 asked: asked.clone(),
+                local: true,
             },
         )
         .panel(PANEL, panel::RetouchPanel(asked))
@@ -151,6 +168,9 @@ enum Kind {
 struct Retouch {
     config: Config,
     asked: panel::Shared,
+    /// The generator on this computer: always a plain removal by LaMa, which
+    /// the panel and the settings don't touch.
+    local: bool,
 }
 
 impl RetouchGenerator for Retouch {
@@ -162,7 +182,11 @@ impl RetouchGenerator for Retouch {
         // Whatever a setting holds, a key pasted in the wrong field included,
         // is cleaned out of what choosing the provider says.
         // What the panel holds: the mode, and the prompt on one line.
-        let asked = self.asked.get(cx.data_dir());
+        let asked = if self.local {
+            panel::Asked::default()
+        } else {
+            self.asked.get(cx.data_dir())
+        };
         let kind = if asked.replace {
             Kind::Replace
         } else {
@@ -170,7 +194,7 @@ impl RetouchGenerator for Retouch {
         };
         let text = asked.text();
         let summary = text.as_deref().map(summary);
-        let chosen = self.provider(cx.settings(), kind, text).map_err(|mut e| {
+        let chosen = self.provider(cx, kind, text).map_err(|mut e| {
             let secrets: Vec<&str> = [
                 setting::FAL_KEY,
                 setting::REPLICATE_TOKEN,
@@ -220,7 +244,15 @@ impl RetouchGenerator for Retouch {
             Kind::Remove => "Removing",
             Kind::Replace => "Replacing",
         };
-        cx.progress(None, Some(&format!("{doing} with {name}")));
+        if self.local && !local::cached(cx.data_dir(), &self.config.lama) {
+            let mib = self.config.lama.bytes >> 20;
+            cx.progress(
+                None,
+                Some(&format!("Downloading the removal model, once ({mib} MiB)")),
+            );
+        } else {
+            cx.progress(None, Some(&format!("{doing} with {name}")));
+        }
         let encoded = call(
             cx,
             chosen.provider,
@@ -256,11 +288,28 @@ impl Retouch {
     /// settings choose on fal.ai and the editor on Replicate.
     fn provider(
         &self,
-        settings: &Map<String, Value>,
+        cx: &Context,
         kind: Kind,
         text: Option<String>,
     ) -> Result<Chosen, RemoteError> {
-        let config = &self.config;
+        let (config, settings) = (&self.config, cx.settings());
+        if self.local {
+            if !local::SUPPORTED {
+                return Err(RemoteError::new(
+                    ErrorCode::Unavailable,
+                    "AI Remove on this computer isn't available on Intel Macs: ONNX Runtime has \
+                     no build for them",
+                ));
+            }
+            return Ok(Chosen {
+                provider: Box::new(local::Lama::new(
+                    config.lama.clone(),
+                    cx.data_dir(),
+                    config.deadline,
+                )),
+                secret: String::new(),
+            });
+        }
         // Nothing wrong with the request: the user has a prompt to write.
         if kind == Kind::Replace && text.is_none() {
             return Err(RemoteError::new(

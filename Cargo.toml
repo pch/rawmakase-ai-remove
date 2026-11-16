@@ -27,5 +27,14 @@ image = { version = "0.25", default-features = false, features = ["png", "jpeg",
 # Blocking HTTPS with rustls and its bundled roots: no OpenSSL, no system TLS.
 ureq = { version = "3", default-features = false, features = ["rustls"] }
 
+# Checking the downloaded model against its pinned hash.
+sha2 = "0.10"
+
+# AI Remove on this computer: LaMa through ONNX Runtime, with the runtime
+# downloaded at build time (pyke's prebuilt binaries) and linked in. There is
+# no binary for Intel Macs, which get a message instead.
+[target.'cfg(not(all(target_os = "macos", target_arch = "x86_64")))'.dependencies]
+ort = { version = "=2.0.0-rc.15", default-features = false, features = ["std", "download-binaries", "tls-rustls"] }
+
 [profile.release]
 strip = true

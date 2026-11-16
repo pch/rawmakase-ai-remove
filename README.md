@@ -11,6 +11,10 @@ and a **Prompt**:
 - **AI Replace**: say what to do with the area, for example *change the shoes
   to elegant high heels* or *a wooden bench*.
 
+A second tool, **AI Remove on this computer** (an eraser), removes what you
+paint with a model that runs on your own machine: no account, no key, nothing
+uploaded. See [AI Remove on this computer](#ai-remove-on-this-computer).
+
 Paint in as many strokes as it takes, then send the area with the drawer's
 button or Enter. The prompt and mode are kept, between photos and after
 RAWmakase restarts.
@@ -46,6 +50,34 @@ Inside the area, an instruction such as *keep the people* is followed as well
 as the model follows it: check the
 result, and undo it if it changed what it should have kept.
 
+## AI Remove on this computer
+
+The **AI Remove on this computer** tool needs no account and no key. It runs
+[LaMa](https://github.com/advimman/lama) ("big-lama", Apache-2.0), in
+[Carve's ONNX port](https://huggingface.co/Carve/LaMa-ONNX), on the CPU with
+ONNX Runtime, inside the extension's own process. Nothing is uploaded, so
+RAWmakase asks no consent question for it.
+
+- **The weights are not in this package.** The first removal downloads
+  `lama_fp32.onnx` (198 MiB) from a pinned revision of that repository into
+  the extension's data folder, checks it against a pinned SHA-256, and keeps
+  nothing that doesn't match. A download that stops early continues on the
+  next request. Without a network the tool says so until the model is there.
+  LaMa's training data is Places: check that its terms suit your use.
+- **Speed.** A removal takes about 3 to 4.5 s on a recent laptop CPU (Apple
+  M1 to M2 Max, 8 to 12 threads), plus about 1 s to load the model, and about
+  1.5 GB of memory while it runs. The region is padded to a square and
+  shrunk to the model's fixed 512 pixels, so a large region loses detail
+  inside what you painted; the pixels outside it stay as they were.
+- **What it is good at.** Small objects and texture: sand, water, walls,
+  foliage, gravel. There it comes close to the hosted eraser.
+- **What it is not.** It has no prompt, and it fills from what is around the
+  area, so it does worse than the hosted model where a person or a structure
+  crosses a sharp edge: a standing person's legs can leave a ghost on a
+  platform, dark clothing on a wall can leave a dark blob. Use the hosted
+  **AI Retouch** tool for those, and undo what looks wrong.
+- AI Replace and removal with a prompt stay with the hosted tool.
+
 ## Installing
 
 Install it from RAWmakase: **Preferences > Extensions > Available**, or
@@ -70,7 +102,9 @@ shell profile (`.zshrc`, `.bashrc`), so the setting is the reliable place.
 
 ## Privacy and cost
 
-- **The region leaves your computer.** Each request uploads the rendered
+- **AI Remove on this computer sends nothing**, besides the one download of
+  the model.
+- **The hosted tool's region leaves your computer.** Each request uploads the rendered
   region around what you painted (at most 2048 pixels a side), a mask and
   what you wrote to the service you chose. RAWmakase asks once before the
   first upload. The extension asks fal.ai not to store the request's
@@ -87,6 +121,8 @@ shell profile (`.zshrc`, `.bashrc`), so the setting is the reliable place.
 
 - **8-bit.** The region travels as 8-bit sRGB both ways, so a removal over
   deep shadows or smooth gradients may band where a raw edit wouldn't.
+- **AI Remove on this computer is not available on Intel Macs**, for which
+  ONNX Runtime has no prebuilt binary; it says so there.
 - **At most 2048 pixels a side.** A larger region is sent at a lower
   resolution and scaled back by RAWmakase.
 - **No HDR.** RAWmakase refuses AI Remove and AI Replace on HDR files and HDR
@@ -139,5 +175,6 @@ against: `src/fal.rs` and `src/replicate.rs`.
 
 ## License
 
-MIT. `icons/retouch.svg` is [Lucide](https://lucide.dev)'s `wand-sparkles`,
-under the ISC license.
+MIT. `icons/retouch.svg` is [Lucide](https://lucide.dev)'s `wand-sparkles` and
+`icons/local.svg` its `eraser`, under the ISC license. The model it downloads
+is Apache-2.0; ONNX Runtime is MIT.

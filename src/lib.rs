@@ -40,7 +40,7 @@ pub use sanitize::sanitize;
 
 /// The manifest's `[[retouch-generator]]` id.
 pub const GENERATOR: &str = "retouch";
-/// The manifest's `[[retouch-generator]]` id for AI Remove on this computer:
+/// The manifest's `[[retouch-generator]]` id for AI Local Remove:
 /// no service, no key, nothing uploaded.
 pub const LOCAL_GENERATOR: &str = "local";
 pub use panel::{MODE, PANEL, PROMPT, REMOVE, REPLACE};
@@ -110,7 +110,7 @@ pub struct Config {
     /// image. Below the app's 200 s deadline for `retouch.generate`, so the
     /// program answers before the app gives up on it.
     pub deadline: Duration,
-    /// The model AI Remove on this computer downloads, once.
+    /// The model AI Local Remove downloads, once.
     pub lama: ModelFile,
 }
 
@@ -297,7 +297,7 @@ impl Retouch {
             if !local::SUPPORTED {
                 return Err(RemoteError::new(
                     ErrorCode::Unavailable,
-                    "AI Remove on this computer isn't available on Intel Macs: ONNX Runtime has \
+                    "AI Local Remove isn't available on Intel Macs: ONNX Runtime has \
                      no build for them",
                 ));
             }

@@ -32,7 +32,7 @@ jobs:
         run: |
           rustup toolchain install stable --profile minimal
           rustup default stable
-          cargo install --locked --git https://github.com/pch/rawmakase --rev ee82e60b6e1c1230d07c86131e31968013876aad cargo-rawmakase
+          cargo install --locked --git https://github.com/pch/rawmakase --rev 35a7f24ded6690f81d8220e7dbdf50cee9ebf0ff cargo-rawmakase
       - run: cargo rawmakase build
       # Apple silicon runs only signed programs: an ad-hoc signature is enough
       # for a program RAWmakase downloads itself.

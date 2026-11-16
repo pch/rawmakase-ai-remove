@@ -658,13 +658,27 @@ fn the_manifest_declares_what_the_program_implements() {
     let program = manifest.program.as_ref().unwrap();
     assert_eq!(program.path, concat!("bin/", env!("CARGO_PKG_NAME")));
     use rawmakase_extension::protocol::manifest::PanelPlace;
-    let [local, generator] = &manifest.retouch_generators[..] else {
+    let [generator, local] = &manifest.retouch_generators[..] else {
         panic!("two retouch generators");
     };
+    // AI Retouch first: the rail's tool is drawn and named by the first, and
+    // each is a tab in its drawer, saying below the tabs what it is.
+    assert!(
+        generator
+            .description
+            .as_deref()
+            .is_some_and(|d| d.contains("API key"))
+    );
+    assert!(
+        local
+            .description
+            .as_deref()
+            .is_some_and(|d| d.contains("nothing is uploaded"))
+    );
     // The one on this computer uploads nothing, so the app never asks the
     // user's consent for it, and it has no drawer: nothing to choose.
     assert_eq!(local.id, rawmakase_ai_retouch::LOCAL_GENERATOR);
-    assert_eq!(local.name, "AI Remove on this computer");
+    assert_eq!(local.name, "AI Local Remove");
     assert!(!local.uploads);
     assert_eq!(local.panel, None);
     assert_eq!(generator.id, rawmakase_ai_retouch::GENERATOR);
@@ -693,7 +707,12 @@ fn the_manifest_declares_what_the_program_implements() {
             ..rawmakase_extension::mock::MockHost::hello_params()
         })
         .unwrap();
-    assert_eq!(hello.implements, manifest.contributions());
+    // The same contributions, in whatever order each lists them.
+    let sorted = |mut v: Vec<String>| {
+        v.sort();
+        v
+    };
+    assert_eq!(sorted(hello.implements), sorted(manifest.contributions()));
     host.finish().unwrap();
 
     // The settings the program reads, with the defaults it assumes.

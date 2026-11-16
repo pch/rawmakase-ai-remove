@@ -1,6 +1,6 @@
 [package]
 name = "rawmakase-ai-retouch"
-version = "0.2.0"
+version = "0.3.0"
 edition = "2024"
 description = "Experimental AI Remove and AI Replace for RAWmakase's Remove tool, through a hosted model and your own API key"
 license = "MIT"
@@ -17,7 +17,7 @@ path = "src/main.rs"
 [dependencies]
 # The SDK's API 3 (retouch generators, secret settings), pinned to the
 # commit of pch/rawmakase#1093 that adds it, until it is in a release.
-rawmakase-extension = { git = "https://github.com/pch/rawmakase", rev = "ee82e60b6e1c1230d07c86131e31968013876aad" }
+rawmakase-extension = { git = "https://github.com/pch/rawmakase", rev = "35a7f24ded6690f81d8220e7dbdf50cee9ebf0ff" }
 serde_json = "1"
 # Data URIs for the images sent to the providers and read back from them.
 base64 = "0.22"

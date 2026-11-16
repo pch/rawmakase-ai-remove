@@ -1,4 +1,4 @@
-//! AI Remove on this computer: the `local` generator runs a model on the
+//! AI Local Remove: the `local` generator runs a model on the
 //! user's machine, after downloading it once. The model here is a tiny stand-in
 //! with LaMa's interface (see `tests/fixtures/make-halve.py`) that returns
 //! half of each input channel in the hole and the input elsewhere, so the

@@ -1,4 +1,4 @@
-//! AI Remove on this computer: LaMa ("big-lama", Apache-2.0), run by ONNX
+//! AI Local Remove: LaMa ("big-lama", Apache-2.0), run by ONNX
 //! Runtime on the CPU. Nothing is uploaded and no key is needed.
 //!
 //! The weights are not part of this package. The first request downloads
@@ -341,7 +341,7 @@ fn infer(model: &Path, image: Vec<f32>, mask: Vec<f32>) -> Result<Vec<f32>, Stri
 /// ONNX Runtime has no prebuilt binary for Intel Macs.
 #[cfg(all(target_os = "macos", target_arch = "x86_64"))]
 fn infer(_: &Path, _: Vec<f32>, _: Vec<f32>) -> Result<Vec<f32>, String> {
-    Err("AI Remove on this computer isn't available on Intel Macs".into())
+    Err("AI Local Remove isn't available on Intel Macs".into())
 }
 
 /// A `side` x `side` RGB image at `NET` x `NET`.

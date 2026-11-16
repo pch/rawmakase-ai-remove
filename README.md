@@ -11,9 +11,9 @@ and a **Prompt**:
 - **AI Replace**: say what to do with the area, for example *change the shoes
   to elegant high heels* or *a wooden bench*.
 
-A second tool, **AI Remove on this computer** (an eraser), removes what you
+A second tab in the same tool, **AI Local Remove**, removes what you
 paint with a model that runs on your own machine: no account, no key, nothing
-uploaded. See [AI Remove on this computer](#ai-remove-on-this-computer).
+uploaded. See [AI Local Remove](#ai-local-remove).
 
 Paint in as many strokes as it takes, then send the area with the drawer's
 button or Enter. The prompt and mode are kept, between photos and after
@@ -50,9 +50,9 @@ Inside the area, an instruction such as *keep the people* is followed as well
 as the model follows it: check the
 result, and undo it if it changed what it should have kept.
 
-## AI Remove on this computer
+## AI Local Remove
 
-The **AI Remove on this computer** tool needs no account and no key. It runs
+The **AI Local Remove** tab needs no account and no key. It runs
 [LaMa](https://github.com/advimman/lama) ("big-lama", Apache-2.0), in
 [Carve's ONNX port](https://huggingface.co/Carve/LaMa-ONNX), on the CPU with
 ONNX Runtime, inside the extension's own process. Nothing is uploaded, so
@@ -102,7 +102,7 @@ shell profile (`.zshrc`, `.bashrc`), so the setting is the reliable place.
 
 ## Privacy and cost
 
-- **AI Remove on this computer sends nothing**, besides the one download of
+- **AI Local Remove sends nothing**, besides the one download of
   the model.
 - **The hosted tool's region leaves your computer.** Each request uploads the rendered
   region around what you painted (at most 2048 pixels a side), a mask and
@@ -121,7 +121,7 @@ shell profile (`.zshrc`, `.bashrc`), so the setting is the reliable place.
 
 - **8-bit.** The region travels as 8-bit sRGB both ways, so a removal over
   deep shadows or smooth gradients may band where a raw edit wouldn't.
-- **AI Remove on this computer is not available on Intel Macs**, for which
+- **AI Local Remove is not available on Intel Macs**, for which
   ONNX Runtime has no prebuilt binary; it says so there.
 - **At most 2048 pixels a side.** A larger region is sent at a lower
   resolution and scaled back by RAWmakase.

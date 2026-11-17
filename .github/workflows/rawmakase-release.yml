@@ -18,7 +18,7 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - { os: ubuntu-latest, target: linux-x86_64 }
+          - { os: ubuntu-24.04, target: linux-x86_64 }
           - { os: ubuntu-24.04-arm, target: linux-aarch64 }
           - { os: macos-15, target: macos-aarch64 }
           - { os: macos-15-intel, target: macos-x86_64 }
@@ -43,6 +43,10 @@ jobs:
             if [ -f "$program" ] && [ -x "$program" ]; then codesign --force --sign - "$program"; fi
           done
       - run: cargo rawmakase package --target ${{ matrix.target }}
+      - name: Check Linux package compatibility
+        if: runner.os == 'Linux'
+        shell: bash
+        run: python3 scripts/check-linux-package.py target/rmext/*.rmext
       - uses: actions/upload-artifact@v4
         with:
           name: rmext-${{ matrix.target }}

@@ -1,7 +1,7 @@
 [extension]
 id = "dev.pch.ai-remove"
 name = "AI Retouch"
-version = "0.3.0"
+version = "0.3.1"
 rawmakase = ">=0.5"
 api = 3
 authors = ["Piotr Chmolowski"]
